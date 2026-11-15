@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data / vector stores / models
+data/raw/
+*.faiss
+chroma_db/
+.chroma/
+*.sqlite3
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
