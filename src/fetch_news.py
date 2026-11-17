@@ -6,9 +6,11 @@ Usage:
     python -m src.fetch_news
 """
 
-import re
-import html
-import feedparser
+import re # 正则表达式
+import html # 处理 HTML 里的特殊符号
+import feedparser   # 用来读 RSS 的库
+import json 
+import os
 
 feeds = {
     "BBC World": "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -23,10 +25,9 @@ feeds = {
 def clean_text(text):
     """
     function: turn an RSS summary into plain text
-        some feeds (e.g. The Guardian) put HTML tags, entities like &amp; and invisible
-        zero-width characters in the summary
-    output:
-        "<p>Prices rose &amp; fell</p>" -> "Prices rose & fell"
+        some feeds put HTML tags, entities like &amp; and invisible
+
+    output: convert "<p>Prices rose &amp; fell</p>" to "Prices rose & fell" (the special symbols and extra blank space are removed)
     """
     text = re.sub(r"<[^>]+>", " ", text)              # drop HTML tags
     text = html.unescape(text)                         # &amp; -> &
@@ -42,6 +43,8 @@ def fetch_feed(source, url):
     """
     feed = feedparser.parse(url)
     articles = []
+
+    # each entry represent an article
     for entry in feed.entries:
         articles.append({
             "title": clean_text(entry.get("title", "")),
@@ -55,7 +58,7 @@ def fetch_feed(source, url):
 
 def fetch_all():
     """
-    function: fetch every feed and remove duplicates (same link or same title)
+    function: fetch every feed and remove duplicates (like same link or same title)
         a feed that fails to download is skipped, so one broken feed does not stop the rest
     output:
         list of articles, each with an extra "text" field (title + summary) for the model
@@ -72,6 +75,12 @@ def fetch_all():
         for article in feed_articles:
             key_link = article["link"]
             key_title = article["title"].lower()
+
+            # not article["title"], whether the title is empty string
+            # Here, we check there conditions:
+            # 1. whether title is empty string
+            # 2. whether article link is saved in seen already
+            # 3. whether article title is saved in seen already
             if not article["title"] or key_link in seen or key_title in seen:
                 continue
             seen.add(key_link)
@@ -84,9 +93,43 @@ def fetch_all():
     print(f"total after removing duplicates: {len(articles)}")
     return articles
 
-def save_articles()
+def save_articles(articles, path):
+    saved_links = set()
+    saved_titles = set()
+
+    # load the dataset in path
+    if os.path.exists():
+        with open(path, "r", encoding = "utf-8") as f:
+            for line in f:
+                saved_articles = json.loads(line)
+                saved_link = saved_articles["link"]
+                saved_title = saved_articles["title"]
+                
+                saved_links.add(saved_link)
+                saved_titles.add(saved_title)
+
+    new_articles = []
+
+    for article in articles:
+        key_title = article["title"].lower()
+        key_link = article["link"]
+
+        if key_link not in saved_links and key_title not in saved_titles:
+            new_articles.append(article)
+
+    # save the new_articles as json
+    with open(path, "a", encoding = "utf-8") as f:
+        for article in new_articles:
+            line = json.dumps(article, ensure_ascii=False)
+            f.write(line + "\n")
+
+    num_new = len(new_articles)
+    num_total = len(saved_links) + num_new
+    print(f"the number of saved articles are {num_new}")
+    print(f"the number of total articles are {num_total}")
+        
+
 
 if __name__ == "__main__":
     articles = fetch_all()
-    for article in articles[:5]:
-        print(f"[{article['source']}] {article['text'][:100]}")
+    save_articles(articles, "data/news.jsonl")
