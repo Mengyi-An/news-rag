@@ -98,12 +98,12 @@ def save_articles(articles, path):
     saved_titles = set()
 
     # load the dataset in path
-    if os.path.exists():
+    if os.path.exists(path):
         with open(path, "r", encoding = "utf-8") as f:
             for line in f:
                 saved_articles = json.loads(line)
                 saved_link = saved_articles["link"]
-                saved_title = saved_articles["title"]
+                saved_title = saved_articles["title"].lower()
                 
                 saved_links.add(saved_link)
                 saved_titles.add(saved_title)
